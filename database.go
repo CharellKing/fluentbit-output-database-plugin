@@ -135,7 +135,8 @@ func (p *DatabasePlugin) convertFieldValue(fieldType string, value interface{}) 
 	case "varchar", "tinytext", "mediumtext", "longtext", "text", "tinyblob", "mediumblob", "longblob", "blob":
 		v := reflect.ValueOf(value)
 		if v.Kind() == reflect.Slice || v.Kind() == reflect.Map {
-			value, _ = json.Marshal(value)
+			bytesValue, _ := json.Marshal(value)
+			value = string(bytesValue)
 		}
 	}
 	return value
@@ -159,6 +160,11 @@ func (p *DatabasePlugin) BatchWrite(records []map[interface{}]interface{}) error
 	defer func() {
 		_ = stmt.Close()
 	}()
+
+	if len(records) > 0 {
+		recordBytes, _ := json.MarshalIndent(records[0], "", "  ")
+		p.SugarLogger.Infof("record: %s", string(recordBytes))
+	}
 
 	for _, record := range records {
 		values := make([]interface{}, len(p.Columns))
