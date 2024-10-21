@@ -1,4 +1,5 @@
 all:
+	rm -rf bin
 	go build -buildmode=c-shared -o bin/database.so .
 
 fast:
