@@ -199,10 +199,8 @@ func (p *DatabasePlugin) BatchWrite(records []map[interface{}]interface{}) error
 	valuesArray = lop.Map(records, func(record map[interface{}]interface{}, _ int) []interface{} {
 		values := make([]interface{}, len(p.Columns))
 		for i, col := range p.Columns {
-			p.SugarLogger.Infof("before record: col: %+v, value: %+v", col, values[i])
 			values[i] = p.convertBytesToString(record[col])
 			values[i] = p.convertFieldValue(p.ColumnMap[col], values[i])
-			p.SugarLogger.Infof("after record: col: %+v, value: %+v", col, values[i])
 		}
 		return values
 	})
