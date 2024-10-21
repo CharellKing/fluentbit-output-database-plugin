@@ -169,8 +169,9 @@ func (p *DatabasePlugin) BatchWrite(records []map[interface{}]interface{}) error
 	for _, record := range records {
 		values := make([]interface{}, len(p.Columns))
 		for i, col := range p.Columns {
+			p.SugarLogger.Infof("before record: col: %+v, value: %+v", col, values[i])
 			values[i] = p.convertFieldValue(p.ColumnMap[col], record[col])
-			p.SugarLogger.Infof("record: col: %+v, value: %+v", col, values[i])
+			p.SugarLogger.Infof("after record: col: %+v, value: %+v", col, values[i])
 
 		}
 		_, err := stmt.ExecContext(ctx, values...)
