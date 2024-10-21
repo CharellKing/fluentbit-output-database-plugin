@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
@@ -159,6 +160,22 @@ func (p *DatabasePlugin) convertBytesToString(data interface{}) interface{} {
 	}
 }
 
+func (p *DatabasePlugin) convertFieldValue(fieldType string, value interface{}) interface{} {
+	if lo.IsEmpty(value) {
+		return value
+	}
+
+	switch fieldType {
+	case "varchar", "tinytext", "mediumtext", "longtext", "text", "tinyblob", "mediumblob", "longblob", "blob":
+		v := reflect.ValueOf(value)
+		if v.Kind() == reflect.Slice || v.Kind() == reflect.Map {
+			bytesValue, _ := json.Marshal(value)
+			value = string(bytesValue)
+		}
+	}
+	return value
+}
+
 func (p *DatabasePlugin) BatchWrite(records []map[interface{}]interface{}) error {
 	ctx := context.Background()
 	if len(records) <= 0 {
@@ -184,6 +201,7 @@ func (p *DatabasePlugin) BatchWrite(records []map[interface{}]interface{}) error
 		for i, col := range p.Columns {
 			p.SugarLogger.Infof("before record: col: %+v, value: %+v", col, values[i])
 			values[i] = p.convertBytesToString(record[col])
+			values[i] = p.convertFieldValue(p.ColumnMap[col], values[i])
 			p.SugarLogger.Infof("after record: col: %+v, value: %+v", col, values[i])
 		}
 		return values
