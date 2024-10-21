@@ -130,20 +130,32 @@ func getFields(conn *sql.DB, table string, ignoreColumns []string) ([]string, ma
 	return columns, columnMap, nil
 }
 
-func (p *DatabasePlugin) convertFieldValue(fieldType string, value interface{}) interface{} {
-	if lo.IsEmpty(value) {
-		return value
+func (p *DatabasePlugin) convertBytesToString(data interface{}) interface{} {
+	if data == nil {
+		return nil
 	}
-
-	switch fieldType {
-	case "varchar", "tinytext", "mediumtext", "longtext", "text", "tinyblob", "mediumblob", "longblob", "blob":
-		v := reflect.ValueOf(value)
-		if v.Kind() == reflect.Slice || v.Kind() == reflect.Map {
-			bytesValue, _ := json.Marshal(value)
-			value = string(bytesValue)
+	v := reflect.ValueOf(data)
+	switch v.Kind() {
+	case reflect.Slice:
+		if v.Type().Elem().Kind() == reflect.Uint8 {
+			return string(v.Bytes())
 		}
+		// traverse slice
+		newSlice := make([]interface{}, v.Len(), v.Cap())
+		for i := 0; i < v.Len(); i++ {
+			newSlice[i] = p.convertBytesToString(v.Index(i).Interface())
+		}
+		return newSlice
+	case reflect.Map:
+		// traverse map
+		newMap := reflect.MakeMap(v.Type())
+		for _, key := range v.MapKeys() {
+			newMap.SetMapIndex(key, reflect.ValueOf(p.convertBytesToString(v.MapIndex(key).Interface())))
+		}
+		return newMap.Interface()
+	default:
+		return data
 	}
-	return value
 }
 
 func (p *DatabasePlugin) BatchWrite(records []map[interface{}]interface{}) error {
@@ -175,9 +187,8 @@ func (p *DatabasePlugin) BatchWrite(records []map[interface{}]interface{}) error
 		p.SugarLogger.Infof("before record: %+v", record)
 		for i, col := range p.Columns {
 			p.SugarLogger.Infof("before record: col: %+v, value: %+v", col, values[i])
-			values[i] = p.convertFieldValue(p.ColumnMap[col], record[col])
+			values[i] = p.convertBytesToString(record[col])
 			p.SugarLogger.Infof("after record: col: %+v, value: %+v", col, values[i])
-
 		}
 		_, err := stmt.ExecContext(ctx, values...)
 		if err != nil {

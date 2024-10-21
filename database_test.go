@@ -95,3 +95,37 @@ func TestInsertBusiness(t *testing.T) {
 	}
 
 }
+
+func TestConvertBytesToString(t *testing.T) {
+	databasePlugin, err := getDatabasePlugin("sgc_trade_bussines_log", []string{"updated"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	d := databasePlugin.convertBytesToString([][]byte{
+		[]byte("abc"),
+		[]byte("def"),
+		[]byte("ghi"),
+	})
+
+	t.Log(d)
+
+	d = databasePlugin.convertBytesToString(map[string]interface{}{
+		"a": [][]byte{
+			[]byte("abc"),
+			[]byte("def"),
+			[]byte("ghi"),
+		},
+		"b": 1,
+		"c": 12.3,
+		"d": map[string]interface{}{
+			"e": "abc",
+			"f": "def",
+			"g": []byte("abcdef"),
+			"h": map[string]interface{}{
+				"dehi": "12341242",
+			},
+		},
+	})
+	t.Log(d)
+}

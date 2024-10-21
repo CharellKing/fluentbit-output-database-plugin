@@ -2,7 +2,6 @@ package main
 
 import (
 	"C"
-	"encoding/json"
 	"strings"
 	"time"
 
@@ -145,14 +144,6 @@ func FLBPluginFlushCtx(ctx, data unsafe.Pointer, length C.int, tag *C.char) int 
 		if len(record) <= 0 {
 			continue
 		}
-
-		recordBytes, _ := json.MarshalIndent(record, "", "  ")
-		sugarLogger.Infof("get record %+v", string(recordBytes))
-		sugarLogger.Info("====================")
-		for k, v := range record {
-			sugarLogger.Infof("get record helloworld: key %v, value %v", k, v)
-		}
-		sugarLogger.Info("====================")
 
 		records = append(records, record)
 
