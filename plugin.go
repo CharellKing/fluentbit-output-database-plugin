@@ -2,6 +2,7 @@ package main
 
 import (
 	"C"
+	"strings"
 	"time"
 
 	"fmt"
@@ -20,12 +21,17 @@ var (
 	pluginInstances []*DatabasePlugin
 )
 
+func initLogger() {
+	logger, _ := zap.NewProduction()
+	sugarLogger = logger.Sugar()
+}
+
 func addPluginInstance(ctx unsafe.Pointer) error {
 	pluginID := len(pluginInstances)
 
 	config := getConfiguration(ctx, pluginID)
 
-	instance, err := NewDatabasePlugin(config)
+	instance, err := NewDatabasePlugin(sugarLogger, config)
 	if err != nil {
 		return err
 	}
@@ -75,6 +81,11 @@ func getConfiguration(ctx unsafe.Pointer, pluginID int) *DatabasePluginConfig {
 		config.Table = DefaultTable
 	}
 
+	ignoreColumnStr := output.FLBPluginConfigKey(ctx, "ignoreColumns")
+	if ignoreColumnStr != "" {
+		config.IgnoreColumns = strings.Fields(ignoreColumnStr)
+	}
+
 	batchSize := output.FLBPluginConfigKey(ctx, "batchSize")
 	if batchSize == "" {
 		config.BatchSize = DefaultBatchSize
@@ -88,10 +99,7 @@ func getConfiguration(ctx unsafe.Pointer, pluginID int) *DatabasePluginConfig {
 //export FLBPluginRegister
 func FLBPluginRegister(def unsafe.Pointer) int {
 	// Gets called only once when the plugin.so is loaded
-
-	logger, _ := zap.NewProduction()
-	sugarLogger = logger.Sugar()
-
+	initLogger()
 	return output.FLBPluginRegister(def, pluginName, fmt.Sprintf("%s output plugin %s", pluginName, version))
 }
 
