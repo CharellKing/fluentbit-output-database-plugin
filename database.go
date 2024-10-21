@@ -131,6 +131,10 @@ func getFields(conn *sql.DB, table string, ignoreColumns []string) ([]string, ma
 }
 
 func (p *DatabasePlugin) convertFieldValue(fieldType string, value interface{}) interface{} {
+	if lo.IsEmpty(value) {
+		return value
+	}
+
 	switch fieldType {
 	case "varchar", "tinytext", "mediumtext", "longtext", "text", "tinyblob", "mediumblob", "longblob", "blob":
 		v := reflect.ValueOf(value)
@@ -168,6 +172,7 @@ func (p *DatabasePlugin) BatchWrite(records []map[interface{}]interface{}) error
 
 	for _, record := range records {
 		values := make([]interface{}, len(p.Columns))
+		p.SugarLogger.Infof("before record: %+v", record)
 		for i, col := range p.Columns {
 			p.SugarLogger.Infof("before record: col: %+v, value: %+v", col, values[i])
 			values[i] = p.convertFieldValue(p.ColumnMap[col], record[col])
