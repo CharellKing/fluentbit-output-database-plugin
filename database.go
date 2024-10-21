@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
+	lop "github.com/samber/lo/parallel"
+
 	"github.com/spf13/cast"
 	"go.uber.org/zap"
 	"reflect"
@@ -177,19 +178,17 @@ func (p *DatabasePlugin) BatchWrite(records []map[interface{}]interface{}) error
 		_ = stmt.Close()
 	}()
 
-	if len(records) > 0 {
-		recordBytes, _ := json.MarshalIndent(records[0], "", "  ")
-		p.SugarLogger.Infof("record: %s", string(recordBytes))
-	}
-
-	for _, record := range records {
+	var valuesArray [][]interface{}
+	valuesArray = lop.Map(records, func(record map[interface{}]interface{}, _ int) []interface{} {
 		values := make([]interface{}, len(p.Columns))
-		p.SugarLogger.Infof("before record: %+v", record)
 		for i, col := range p.Columns {
 			p.SugarLogger.Infof("before record: col: %+v, value: %+v", col, values[i])
 			values[i] = p.convertBytesToString(record[col])
 			p.SugarLogger.Infof("after record: col: %+v, value: %+v", col, values[i])
 		}
+		return values
+	})
+	for _, values := range valuesArray {
 		_, err := stmt.ExecContext(ctx, values...)
 		if err != nil {
 			if err := tx.Rollback(); err != nil {
