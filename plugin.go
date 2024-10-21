@@ -142,6 +142,10 @@ func FLBPluginFlushCtx(ctx, data unsafe.Pointer, length C.int, tag *C.char) int 
 			break
 		}
 
+		if len(record) <= 0 {
+			continue
+		}
+
 		recordBytes, _ := json.MarshalIndent(record, "", "  ")
 		sugarLogger.Infof("get record %+v", string(recordBytes))
 		sugarLogger.Info("====================")
