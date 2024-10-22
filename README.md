@@ -1,4 +1,4 @@
-A fluent-bit output plugin to send logs to database. Now it supported MySQL, PostgreSQL, Clickhouse, Oceanbase. Multiple instance is supported.
+A fluent-bit output plugin to send logs to database.
 
 ## Features
 - [x] output to all kind of databases such as mysql, postgresql, clickhouse, oceanbase.
