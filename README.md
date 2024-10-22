@@ -1,3 +1,5 @@
+![image](./logo.jpg)
+
 A fluent-bit output plugin to send logs to database.
 
 ## Features
