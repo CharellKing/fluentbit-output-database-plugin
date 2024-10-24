@@ -160,20 +160,23 @@ func (p *DatabasePlugin) convertBytesToString(data interface{}) interface{} {
 	}
 }
 
-func (p *DatabasePlugin) convertFieldValue(fieldType string, value interface{}) interface{} {
+func (p *DatabasePlugin) convertFieldValue(fieldType string, value interface{}) (interface{}, error) {
 	if lo.IsEmpty(value) {
-		return value
+		return value, nil
 	}
 
 	switch fieldType {
 	case "varchar", "tinytext", "mediumtext", "longtext", "text", "tinyblob", "mediumblob", "longblob", "blob":
 		v := reflect.ValueOf(value)
 		if v.Kind() == reflect.Slice || v.Kind() == reflect.Map {
-			bytesValue, _ := json.Marshal(value)
+			bytesValue, err := json.Marshal(value)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
 			value = string(bytesValue)
 		}
 	}
-	return value
+	return value, nil
 }
 
 func (p *DatabasePlugin) BatchWrite(records []map[interface{}]interface{}) error {
@@ -195,12 +198,18 @@ func (p *DatabasePlugin) BatchWrite(records []map[interface{}]interface{}) error
 		_ = stmt.Close()
 	}()
 
-	var valuesArray [][]interface{}
+	var (
+		valuesArray [][]interface{}
+	)
 	valuesArray = lop.Map(records, func(record map[interface{}]interface{}, _ int) []interface{} {
 		values := make([]interface{}, len(p.Columns))
 		for i, col := range p.Columns {
 			values[i] = p.convertBytesToString(record[col])
-			values[i] = p.convertFieldValue(p.ColumnMap[col], values[i])
+			values[i], err = p.convertFieldValue(p.ColumnMap[col], values[i])
+			if err != nil {
+				sugarLogger.Error("batch write failed",
+					zap.Int("pluginInstanceId", p.PluginInstanceId), zap.Any(col, record[col]), zap.Error(err))
+			}
 		}
 		return values
 	})

@@ -96,6 +96,24 @@ func TestInsertBusiness(t *testing.T) {
 
 }
 
+func TestInsertQuote(t *testing.T) {
+	databasePlugin, err := getDatabasePlugin("symbol_quote_log", []string{"updated_at", "created_at", "deleted_at"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, err := getFileContent("D:\\code\\fluentbit-output-database-plugin\\data\\quote.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = databasePlugin.BatchWrite([]map[interface{}]interface{}{
+		record,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+}
+
 func TestConvertBytesToString(t *testing.T) {
 	databasePlugin, err := getDatabasePlugin("sgc_trade_bussines_log", []string{"updated"})
 	if err != nil {
